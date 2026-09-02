@@ -1,0 +1,29 @@
+{
+  "name": "@kaya/telegram-client",
+  "version": "0.4.0",
+  "type": "module",
+  "description": "Kaya Telegram client: connects to a kaya server over pi-client/pi-protocol, one persistent session per chat.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "kaya-telegram": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-client": "0.84.4",
+    "@earendil-works/pi-protocol": "0.84.4",
+    "@kaya/server": "0.4.0",
+    "grammy": "1.46.0"
+  }
+}

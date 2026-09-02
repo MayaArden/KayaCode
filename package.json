@@ -1,0 +1,22 @@
+{
+  "name": "kaya",
+  "private": true,
+  "type": "module",
+  "version": "0.4.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @kaya/extensions && npm run build -w @kaya/mcp && npm run build -w @kaya/server && npm run build -w @kaya/cli && npm run build -w @kaya/telegram-client",
+    "check": "npm run check -w @kaya/extensions && npm run check -w @kaya/mcp && npm run check -w @kaya/server && npm run check -w @kaya/cli && npm run check -w @kaya/telegram-client",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@kaya/cli",
+  "version": "0.4.0",
+  "type": "module",
+  "description": "Kaya terminal client: pi-tui UI over pi-client, combined and split modes.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "kaya": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-client": "0.84.4",
+    "@earendil-works/pi-protocol": "0.84.4",
+    "@earendil-works/pi-tui": "0.84.4",
+    "@kaya/server": "0.4.0",
+    "chalk": "5.6.2"
+  }
+}
