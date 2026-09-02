@@ -2,6 +2,7 @@
 import * as os from "node:os";
 import { pathToFileURL } from "node:url";
 import * as path from "node:path";
+import { realpathSync } from "node:fs";
 import { PiClient, type ByteTransportFactory } from "@earendil-works/pi-client";
 import type { ThinkingLevel } from "@earendil-works/pi-protocol";
 import { PiServer } from "@earendil-works/pi-server";
@@ -223,9 +224,18 @@ function parseTcpAddress(address: string): { host: string; port: number } {
 }
 
 // Entrypoint guard: run when executed directly (bin) but not when imported.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// argv[1] may be a symlink/junction (npm link shim), so resolve it to the real
+// path before comparing — import.meta.url is always the real path.
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
+) {
   main(process.argv.slice(2)).then(
-    (code) => process.exit(code),
+    (code) => {
+      // Only force-exit on failure; a success exit lets the event loop drain
+      // naturally (process.exit() mid-cleanup trips a libuv assertion on Windows).
+      if (code !== 0) process.exit(code);
+    },
     (error: unknown) => {
       process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}
 `);

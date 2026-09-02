@@ -45,6 +45,9 @@ export async function runPrintMode(options: PrintModeOptions): Promise<number> {
     const lastAssistant = [...snapshot.transcript].reverse().find((i) => i.role === "assistant");
     if (lastAssistant && (lastAssistant.status === "error" || lastAssistant.status === "aborted")) {
       exitCode = 1;
+      // Surface the failure — without this the error only lives in the session file.
+      const message = (lastAssistant as { errorMessage?: string }).errorMessage;
+      if (message) process.stderr.write(`kaya: ${message.slice(0, 500)}\n`);
     }
   } finally {
     unsub();
