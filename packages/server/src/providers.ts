@@ -1,4 +1,4 @@
-import { createModels, createProvider, type Model, type MutableModels } from "@earendil-works/pi-ai";
+import { createModels, createProvider, type CredentialStore, type Model, type MutableModels } from "@earendil-works/pi-ai";
 import { stream, streamSimple } from "@earendil-works/pi-ai/api/openai-completions";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
@@ -44,6 +44,8 @@ function createOllamaProvider(baseUrl: string, modelIds: string[]) {
 export interface KayaModelsOptions {
   ollamaBaseUrl?: string;
   ollamaModels?: string[];
+  /** Persistent credential store (e.g. FileCredentialStore over ~/.kaya/keys.json). */
+  credentials?: CredentialStore;
 }
 
 export function createKayaModels(options: KayaModelsOptions = {}): MutableModels {
@@ -53,7 +55,7 @@ export function createKayaModels(options: KayaModelsOptions = {}): MutableModels
     (process.env.OLLAMA_MODELS?.split(",")
       .map((s) => s.trim())
       .filter(Boolean) || ["llama3.1", "qwen3"]);
-  const models = createModels();
+  const models = createModels({ credentials: options.credentials });
   models.setProvider(anthropicProvider());
   models.setProvider(openaiProvider());
   models.setProvider(openrouterProvider());

@@ -8,6 +8,7 @@ import { SessionNotFoundError, toProtocolModelMetadata, type CreateSessionOption
 import { NOOP_TELEMETRY_CONTEXT, type TelemetryContext } from "@earendil-works/pi-telemetry";
 import { ExtensionLoader } from "@kaya/extensions";
 import { DEFAULT_MODEL_REF, createKayaModels, parseModelRef, resolveModel } from "./providers.js";
+import { FileCredentialStore, keysFilePath } from "./keys.js";
 import { KAYA_DEFAULT_SYSTEM_PROMPT } from "./prompt.js";
 import { KayaSessionRuntime } from "./session.js";
 import { createNotifyTelegramTool } from "./telegram.js";
@@ -174,6 +175,7 @@ export async function createKayaService(config: KayaServerConfig = {}): Promise<
   const models = createKayaModels({
     ...(config.ollamaBaseUrl !== undefined ? { ollamaBaseUrl: config.ollamaBaseUrl } : {}),
     ...(config.ollamaModels !== undefined ? { ollamaModels: config.ollamaModels } : {}),
+    credentials: new FileCredentialStore(keysFilePath(configDir)),
   });
   const defaultModelRef = parseModelRef(config.model ?? process.env.KAYA_MODEL ?? "") ?? DEFAULT_MODEL_REF;
   const defaultRef = defaultModelRef.id ? defaultModelRef : DEFAULT_MODEL_REF;

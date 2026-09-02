@@ -7,6 +7,13 @@ export {
   resolveModel,
 } from "./providers.js";
 export { KAYA_DEFAULT_SYSTEM_PROMPT } from "./prompt.js";
+export {
+  FileCredentialStore,
+  keysFilePath,
+  readKeysFile,
+  saveApiKey,
+  type KeysFile,
+} from "./keys.js";
 export { KayaSessionRuntime, type KayaSessionOptions } from "./session.js";
 export { createKayaService, KayaServerService, type KayaServer, type KayaServerConfig } from "./service.js";
 export { JsonSessionStore, type StoredSession } from "./store.js";

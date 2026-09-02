@@ -1,3 +1,5 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import type { PiClient } from "@earendil-works/pi-client";
 import type { ModelRef, ThinkingLevel, TranscriptItem } from "@earendil-works/pi-protocol";
 import {
@@ -13,7 +15,7 @@ import {
   type Terminal,
 } from "@earendil-works/pi-tui";
 import type { ModelMetadata } from "@earendil-works/pi-protocol";
-import { parseModelRef } from "@kaya/server";
+import { keysFilePath, parseModelRef, saveApiKey } from "@kaya/server";
 import { applyProgress, applySnapshot, createTranscriptState, selectTranscript, type TranscriptState } from "./transcript.js";
 import { createKayaUi, type KayaUi } from "./ui/index.js";
 import { isExpandable, type ExpandableComponent, type SessionStatusView, type TranscriptItemComponent } from "./ui-types.js";
@@ -256,7 +258,7 @@ export async function runInteractiveApp(options: InteractiveAppOptions): Promise
         case "help":
           notice(
             [
-              "Client commands: /help /model <provider/id> /provider <name> /thinking <level> /clear /quit",
+              "Client commands: /help /model <provider/id> /provider <name> /thinking <level> /apikey <provider> <key> /clear /quit",
               "Server commands (extensions): /compact /tools /reload and any extension command.",
               `Keys: ${APP_KEYBINDINGS.toggleExpand} expand/collapse newest block, ${APP_KEYBINDINGS.scrollExpandedUp}/${APP_KEYBINDINGS.scrollExpandedDown} scroll an expanded block.`,
               `Thinking levels: ${THINKING_LEVELS.join(", ")}`,
@@ -315,6 +317,24 @@ export async function runInteractiveApp(options: InteractiveAppOptions): Promise
           notice(`Thinking level set to ${arg}`);
           return;
         }
+        case "apikey": {
+          const spaceIdx = arg.indexOf(" ");
+          const provider = spaceIdx === -1 ? arg : arg.slice(0, spaceIdx);
+          const key = spaceIdx === -1 ? "" : arg.slice(spaceIdx + 1).trim();
+          const providers = [...new Set(serverModels.map((m) => m.provider))];
+          if (!provider || !key || !providers.includes(provider)) {
+            notice(`Usage: /apikey <provider> <key> — known providers: ${providers.join(", ") || "(none)"}`, "error");
+            return;
+          }
+          try {
+            await saveApiKey(keysFilePath(path.join(os.homedir(), ".kaya")), provider, key);
+            // Masked confirmation only — never echo the full key.
+            notice(`API key for ${provider} saved to ~/.kaya/keys.json (••••${key.slice(-4)}); applies on the next kaya start.`);
+          } catch (error) {
+            notice(`Save API key failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+          }
+          return;
+        }
         default:
           // Everything else (e.g. /compact, /tools, /reload, extension commands)
           // is dispatched server-side through the extension command registry.
@@ -360,28 +380,22 @@ export async function runInteractiveApp(options: InteractiveAppOptions): Promise
 function buildSlashCommands(models: readonly ModelMetadata[], serverCommands: ServerCommandInfo[]): SlashCommand[] {
   const providers = [...new Set(models.map((m) => m.provider))];
 
-  const modelArgCompletion = (prefix: string): AutocompleteItem[] => {
-    if (prefix.includes("/")) {
-      return models
-        .filter((m) => `${m.provider}/${m.id}`.startsWith(prefix))
-        .map((m) => ({ value: `${m.provider}/${m.id}`, label: m.name, description: m.provider }));
-    }
-    const items: AutocompleteItem[] = providers
-      .filter((p) => p.startsWith(prefix))
-      .map((p) => ({ value: `${p}/`, label: p, description: "provider" }));
-    items.push(
-      ...models
-        .filter((m) => `${m.provider}/${m.id}`.startsWith(prefix))
-        .map((m) => ({ value: `${m.provider}/${m.id}`, label: m.name, description: m.provider })),
-    );
-    return items;
-  };
+  const modelArgCompletion = (prefix: string): AutocompleteItem[] =>
+    models
+      .filter((m) => `${m.provider}/${m.id}`.startsWith(prefix))
+      .map((m) => ({ value: `${m.provider}/${m.id}`, label: m.name, description: m.provider }));
 
   const providerArgCompletion = (prefix: string): AutocompleteItem[] =>
     providers.filter((p) => p.startsWith(prefix)).map((p) => ({ value: p, label: p, description: "provider" }));
 
   const thinkingArgCompletion = (prefix: string): AutocompleteItem[] =>
     THINKING_LEVELS.filter((level) => level.startsWith(prefix)).map((level) => ({ value: level, label: level }));
+
+  const apikeyArgCompletion = (prefix: string): AutocompleteItem[] =>
+    // Only the first argument (the provider) completes; stop once a key follows.
+    prefix.includes(" ")
+      ? []
+      : providers.filter((p) => p.startsWith(prefix)).map((p) => ({ value: p, label: p, description: "provider" }));
 
   const commands: SlashCommand[] = [
     { name: "help", description: "Show help" },
@@ -405,6 +419,12 @@ function buildSlashCommands(models: readonly ModelMetadata[], serverCommands: Se
       description: "Set thinking level",
       argumentHint: "off|minimal|low|medium|high|xhigh|max",
       getArgumentCompletions: thinkingArgCompletion,
+    },
+    {
+      name: "apikey",
+      description: "Save a provider API key to ~/.kaya/keys.json (env vars still win)",
+      argumentHint: "<provider> <key>",
+      getArgumentCompletions: apikeyArgCompletion,
     },
   ];
   for (const command of serverCommands) {
